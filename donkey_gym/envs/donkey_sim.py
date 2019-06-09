@@ -23,19 +23,24 @@ class DonkeyUnitySimContoller:
     :param level: (int) Level index
     :param port: (int) Port to use for communicating with the simulator
     :param max_cte_error: (float) Max cross track error before reset
+    :param road_style: (int)
+    :param seed: (int)
+    :param turn_increment: (float)
     """
 
-    def __init__(self, level, port=9090, max_cte_error=3.0):
+    def __init__(self, level, port=9090, max_cte_error=3.0,
+                 road_style=0, seed=0, turn_increment=1.0):
+
         self.level = level
         self.verbose = False
-
         # sensor size - height, width, depth
         self.camera_img_size = INPUT_DIM
 
         self.address = ('0.0.0.0', port)
 
         # Socket message handler
-        self.handler = DonkeyUnitySimHandler(level, max_cte_error=max_cte_error)
+        self.handler = DonkeyUnitySimHandler(level, max_cte_error=max_cte_error,
+                                             road_style=road_style, seed=seed, turn_increment=turn_increment)
         # Create the server to which the unity sim will connect
         self.server = SimServer(self.address, self.handler)
         # Start the Asynchronous socket handler thread
@@ -54,9 +59,16 @@ class DonkeyUnitySimContoller:
             print("Waiting for sim to start..."
                   "if the simulation is running, press EXIT to go back to the menu")
             time.sleep(3.0)
+        self.regen_road()
 
     def reset(self):
         self.handler.reset()
+
+    def regen_road(self):
+        self.handler.send_regen_road()
+
+    def seed(self, seed):
+        self.handler.seed = seed
 
     def get_sensor_size(self):
         """
@@ -92,15 +104,23 @@ class DonkeyUnitySimHandler(IMesgHandler):
 
     :param level: (int) Level ID
     :param max_cte_error: (float) Max cross track error before reset
+    :param road_style: (int)
+    :param seed: (int)
+    :param turn_increment: (float)
     """
 
-    def __init__(self, level, max_cte_error=3.0):
+    def __init__(self, level, max_cte_error=3.0,
+                 road_style=0, seed=0, turn_increment=1.0):
         self.level_idx = level
         self.sock = None
         self.loaded = False
         self.verbose = False
         self.timer = FPSTimer(verbose=0)
         self.max_cte_error = max_cte_error
+        # Road characteristic
+        self.road_style = road_style
+        self.seed = seed
+        self.turn_increment = turn_increment
 
         # sensor size - height, width, depth
         self.camera_img_size = INPUT_DIM
@@ -302,6 +322,24 @@ class DonkeyUnitySimHandler(IMesgHandler):
             if self.verbose:
                 print("SceneNames:", names)
             self.send_load_scene(names[self.level_idx])
+
+    def send_regen_road(self):
+        """
+        Regenerate the road, where available. For now only in level 0.
+        In level 0 there are currently 5 road styles. This changes the texture on the road
+        and also the road width.
+        The rand_seed can be used to get some determinism in road generation.
+        The turn_increment defaults to 1.0 internally. Provide a non zero positive float
+        to affect the curviness of the road. Smaller numbers will provide more shallow curves.
+        """
+        msg = {
+            'msg_type' : 'regen_road',
+            'road_style': int(self.road_style).__str__(),
+            'rand_seed': int(self.seed).__str__(),
+            'turn_increment': self.turn_increment.__str__()
+        }
+        print("Regen road, road_style={}, seed={}".format(self.road_style, self.seed))
+        self.queue_message(msg)
 
     def send_control(self, steer, throttle):
         """

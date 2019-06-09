@@ -228,7 +228,7 @@ class TeleopEnv(object):
         self.donkey_env = donkey_env
 
         # Used to prevent from multiple successive key press
-        last_time_pressed = {'space': 0, 'm': 0, 't': 0, 'b': 0, 'o': 0}
+        last_time_pressed = {'space': 0, 'm': 0, 't': 0, 'b': 0, 'o': 0, 'l': 0}
         self.current_obs = self.reset()
 
         if self.model is not None:
@@ -294,10 +294,11 @@ class TeleopEnv(object):
                     last_time_pressed['o'] = time.time()
 
             # Change track
-            if keys[K_l]:
-                self.env.reset()
-                self.donkey_env.exit_scene()
+            if keys[K_l] and (time.time() - last_time_pressed['l']) > KEY_MIN_DELAY:
+                self.donkey_env.viewer.seed(int(time.time()))
+                self.donkey_env.viewer.regen_road()
                 self.need_reset = True
+                last_time_pressed['l'] = time.time()
 
             # Smooth control for teleoperation
             control_throttle, control_steering = control(x, theta, control_throttle, control_steering)
@@ -470,7 +471,8 @@ if __name__ == '__main__':
         N_COMMAND_HISTORY = 0
 
     env = DonkeyVAEEnv(level=LEVEL, frame_skip=TEST_FRAME_SKIP, vae=vae, const_throttle=None, min_throttle=MIN_THROTTLE,
-                       max_throttle=MAX_THROTTLE, max_cte_error=10, n_command_history=N_COMMAND_HISTORY)
+                       max_throttle=MAX_THROTTLE, max_cte_error=10, n_command_history=N_COMMAND_HISTORY,
+                       seed=1, road_style=0)
     env = Recorder(env, folder=args.record_folder, verbose=1)
     try:
         env = TeleopEnv(env, model=model)

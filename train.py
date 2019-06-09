@@ -75,6 +75,7 @@ if vae is not None:
 # Save simulation params
 for key in SIM_PARAMS:
     saved_hyperparams[key] = eval(key)
+saved_hyperparams['seed'] = args.seed
 pprint(saved_hyperparams)
 
 # Compute and create log path

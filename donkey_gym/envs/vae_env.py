@@ -28,6 +28,8 @@ class DonkeyVAEEnv(gym.Env):
     :param n_command_history: (int) number of previous commmands to keep
         it will be concatenated with the vae latent vector
     :param n_stack: (int) Number of frames to stack (used in teleop mode only)
+    :param seed: (int)
+    :param road_style: (int)
     """
 
     metadata = {
@@ -37,7 +39,7 @@ class DonkeyVAEEnv(gym.Env):
     def __init__(self, level=0, frame_skip=2, vae=None, const_throttle=None,
                  min_throttle=0.2, max_throttle=0.5,
                  max_cte_error=3.0, n_command_history=0,
-                 n_stack=1):
+                 n_stack=1, seed=0, road_style=0):
         self.vae = vae
         self.z_size = None
         if vae is not None:
@@ -46,7 +48,6 @@ class DonkeyVAEEnv(gym.Env):
         self.const_throttle = const_throttle
         self.min_throttle = min_throttle
         self.max_throttle = max_throttle
-        self.np_random = None
 
         # Save last n commands (throttle + steering)
         self.n_commands = 2
@@ -74,7 +75,8 @@ class DonkeyVAEEnv(gym.Env):
             self.unity_process.start(exe_path, headless=headless, port=port)
 
         # start simulation com
-        self.viewer = DonkeyUnitySimContoller(level=level, port=port, max_cte_error=max_cte_error)
+        self.viewer = DonkeyUnitySimContoller(level=level, port=port, max_cte_error=max_cte_error,
+                                              seed=seed, road_style=road_style)
 
         if const_throttle is not None:
             # steering only
@@ -108,7 +110,7 @@ class DonkeyVAEEnv(gym.Env):
             self.stacked_obs = np.zeros(low.shape, low.dtype)
             self.observation_space = spaces.Box(low=low, high=high, dtype=obs_space.dtype)
 
-        self.seed()
+        self.seed(seed)
         # Frame Skipping
         self.frame_skip = frame_skip
         # wait until loaded
@@ -244,8 +246,7 @@ class DonkeyVAEEnv(gym.Env):
         self.viewer.quit()
 
     def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        self.viewer.seed(seed)
 
     def set_vae(self, vae):
         """

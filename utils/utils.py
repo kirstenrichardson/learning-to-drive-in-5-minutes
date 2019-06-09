@@ -118,8 +118,7 @@ def make_env(seed=0, log_dir=None, vae=None, frame_skip=None,
         set_global_seeds(seed)
         env = DonkeyVAEEnv(level=LEVEL, frame_skip=frame_skip, vae=vae, const_throttle=None, min_throttle=MIN_THROTTLE,
                            max_throttle=MAX_THROTTLE, max_cte_error=MAX_CTE_ERROR, n_command_history=N_COMMAND_HISTORY,
-                           n_stack=n_stack)
-        env.seed(seed)
+                           n_stack=n_stack, seed=seed)
         if not teleop:
             env = Monitor(env, log_dir, allow_early_resets=True)
         return env
