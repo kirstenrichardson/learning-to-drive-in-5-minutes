@@ -23,7 +23,7 @@ class SACWithVAE(SAC):
     def optimize(self, step, writer, current_lr):
         """
         Do several optimization steps to update the different networks.
-        
+
         :param step: (int) current timestep
         :param writer: (TensorboardWriter object)
         :param current_lr: (float) Current learning rate
@@ -46,17 +46,23 @@ class SACWithVAE(SAC):
         return mb_infos_vals
 
     def learn(self, total_timesteps, callback=None, seed=None,
-              log_interval=1, tb_log_name="SAC", print_freq=100):
+              log_interval=1, tb_log_name="SAC", print_freq=100, reset_num_timesteps=True):
 
-        with TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name) as writer:
+        new_tb_log = self._init_num_timesteps(reset_num_timesteps)
+
+        with TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) as writer:
 
             self._setup_learn(seed)
 
             # Transform to callable if needed
             self.learning_rate = get_schedule_fn(self.learning_rate)
+            # Initial learning rate
+            current_lr = self.learning_rate(1)
 
             start_time = time.time()
             episode_rewards = [0.0]
+            if self.action_noise is not None:
+                self.action_noise.reset()
             is_teleop_env = hasattr(self.env, "wait_for_teleop_reset")
             # TeleopEnv
             if is_teleop_env:
@@ -85,13 +91,18 @@ class SACWithVAE(SAC):
 
                 # Before training starts, randomly sample actions
                 # from a uniform distribution for better exploration.
-                # Afterwards, use the learned policy.
-                if step < self.learning_starts:
-                    action = self.env.action_space.sample()
+                # Afterwards, use the learned policy
+                # if random_exploration is set to 0 (normal setting)
+                if (self.num_timesteps < self.learning_starts
+                    or np.random.rand() < self.random_exploration):
                     # No need to rescale when sampling random action
-                    rescaled_action = action
+                    rescaled_action = action = self.env.action_space.sample()
                 else:
                     action = self.policy_tf.step(obs[None], deterministic=False).flatten()
+                    # Add noise to the action (improve exploration,
+                    # not needed in general)
+                    if self.action_noise is not None:
+                        action = np.clip(action + self.action_noise(), -1, 1)
                     # Rescale from [-1, 1] to the correct bounds
                     rescaled_action = action * np.abs(self.action_space.low)
 
@@ -127,6 +138,8 @@ class SACWithVAE(SAC):
 
                 episode_rewards[-1] += reward
                 if done:
+                    if self.action_noise is not None:
+                        self.action_noise.reset()
                     if not (isinstance(self.env, VecEnv) or is_teleop_env):
                         obs = self.env.reset()
 
@@ -154,8 +167,9 @@ class SACWithVAE(SAC):
                     fps = int(step / (time.time() - start_time))
                     logger.logkv("episodes", num_episodes)
                     logger.logkv("mean 100 episode reward", mean_reward)
-                    logger.logkv('ep_rewmean', safe_mean([ep_info['r'] for ep_info in ep_info_buf]))
-                    logger.logkv('eplenmean', safe_mean([ep_info['l'] for ep_info in ep_info_buf]))
+                    if len(ep_info_buf) > 0 and len(ep_info_buf[0]) > 0:
+                        logger.logkv('ep_rewmean', safe_mean([ep_info['r'] for ep_info in ep_info_buf]))
+                        logger.logkv('eplenmean', safe_mean([ep_info['l'] for ep_info in ep_info_buf]))
                     logger.logkv("n_updates", self.n_updates)
                     logger.logkv("current_lr", current_lr)
                     logger.logkv("fps", fps)

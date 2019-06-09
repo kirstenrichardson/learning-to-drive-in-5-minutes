@@ -17,12 +17,17 @@ class PPO2WithVAE(PPO2):
     Notable changes:
         - optimization is done after each episode and not after n steps
     """
-    def learn(self, total_timesteps, callback=None, seed=None, log_interval=1, tb_log_name="PPO2"):
+    def learn(self, total_timesteps, callback=None, seed=None, log_interval=1,
+              tb_log_name="PPO2", reset_num_timesteps=True):
         # Transform to callable if needed
         self.learning_rate = get_schedule_fn(self.learning_rate)
         self.cliprange = get_schedule_fn(self.cliprange)
+        cliprange_vf = get_schedule_fn(self.cliprange_vf)
 
-        with TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name) as writer:
+        new_tb_log = self._init_num_timesteps(reset_num_timesteps)
+
+
+        with TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) as writer:
             self._setup_learn(seed)
 
             runner = Runner(env=self.env, model=self, n_steps=self.n_steps, gamma=self.gamma, lam=self.lam)
@@ -39,6 +44,7 @@ class PPO2WithVAE(PPO2):
                 frac = 1.0 - timestep / total_timesteps
                 lr_now = self.learning_rate(frac)
                 cliprangenow = self.cliprange(frac)
+                cliprange_vf_now = cliprange_vf(frac)
                 # true_reward is the reward without discount
                 obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = runner.run()
                 n_timesteps += len(obs)
@@ -49,13 +55,11 @@ class PPO2WithVAE(PPO2):
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(inds)
                         for start in range(0, self.n_batch, batch_size):
-                            # timestep = ((update * self.noptepochs * self.n_batch + epoch_num * self.n_batch + start) //
-                            #             batch_size)
                             end = start + batch_size
                             mbinds = inds[start:end]
                             slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                             mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, writer=writer,
-                                                                 update=n_timesteps))
+                                                                 update=n_timesteps, cliprange_vf=cliprange_vf_now))
                 else:  # recurrent version
                     assert self.n_envs % self.nminibatches == 0
                     env_indices = np.arange(self.n_envs)
@@ -89,8 +93,9 @@ class PPO2WithVAE(PPO2):
                     logger.logkv("total_timesteps", n_timesteps)
                     logger.logkv("fps", fps)
                     logger.logkv("explained_variance", float(explained_var))
-                    logger.logkv('ep_rewmean', safe_mean([ep_info['r'] for ep_info in ep_info_buf]))
-                    logger.logkv('eplenmean', safe_mean([ep_info['l'] for ep_info in ep_info_buf]))
+                    if len(ep_info_buf) > 0 and len(ep_info_buf[0]) > 0:
+                        logger.logkv('ep_reward_mean', safe_mean([ep_info['r'] for ep_info in ep_info_buf]))
+                        logger.logkv('ep_len_mean', safe_mean([ep_info['l'] for ep_info in ep_info_buf]))
                     logger.logkv('time_elapsed', t_start - t_first_start)
                     for (loss_val, loss_name) in zip(loss_vals, self.loss_names):
                         logger.logkv(loss_name, loss_val)
