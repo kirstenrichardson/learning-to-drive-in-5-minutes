@@ -12,11 +12,13 @@ from stable_baselines.common import set_global_seeds
 from stable_baselines.common.vec_env import VecFrameStack, VecNormalize, DummyVecEnv
 from stable_baselines.ddpg import AdaptiveParamNoiseSpec, NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from stable_baselines.ppo2.ppo2 import constfn
+from stable_baselines.gail import ExpertDataset
 
 from config import MIN_THROTTLE, MAX_THROTTLE, FRAME_SKIP,\
     MAX_CTE_ERROR, SIM_PARAMS, N_COMMAND_HISTORY, Z_SIZE, BASE_ENV, ENV_ID, MAX_STEERING_DIFF
 from utils.utils import make_env, ALGOS, linear_schedule, get_latest_run_id, load_vae, create_callback
 from teleop.teleop_client import TeleopEnv
+from teleop.recorder import Recorder
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-tb', '--tensorboard-log', help='Tensorboard log dir', default='', type=str)
@@ -37,6 +39,14 @@ parser.add_argument('--random-features', action='store_true', default=False,
                     help='Use random features')
 parser.add_argument('--teleop', action='store_true', default=False,
                     help='Use teleoperation for training')
+parser.add_argument('-pretrain', '--pretrain-path', type=str,
+                    help='Path to an expert dataset for pretraining')
+parser.add_argument('--n-epochs', type=int, default=50,
+                    help='Number of epochs when doing pretraining')
+parser.add_argument('--batch-size', type=int, default=64,
+                    help='Minibatch size when doing pretraining')
+parser.add_argument('--traj-limitation', type=int, default=-1,
+                    help='The number of trajectory to use (if -1, load all)')
 args = parser.parse_args()
 
 set_global_seeds(args.seed)
@@ -172,6 +182,23 @@ if args.trained_agent.endswith('.pkl') and os.path.isfile(args.trained_agent):
 else:
     # Train an agent from scratch
     model = ALGOS[args.algo](env=env, tensorboard_log=tensorboard_log, verbose=1, **hyperparams)
+
+if args.pretrain_path is not None:
+    print("Petraining model for {} epochs".format(args.n_epochs))
+    if os.path.isdir(args.pretrain_path):
+        args.pretrain_path = os.path.join(args.pretrain_path, 'expert_dataset.npz')
+    assert args.pretrain_path.endswith('.npz') and os.path.isfile(args.pretrain_path), "Invalid pretain path: {}".format(args.pretrain_path)
+    expert_dataset = np.load(args.pretrain_path)
+    # Convert dataset if needed
+    if vae is not None:
+        print("Converting to vae latent space...")
+        expert_dataset = Recorder.convert_obs_to_latent_vec(expert_dataset, vae, N_COMMAND_HISTORY)
+    # Create the dataloader and petrain (Behavior-Cloning)
+    dataset = ExpertDataset(traj_data=expert_dataset,
+                            traj_limitation=args.traj_limitation, batch_size=args.batch_size)
+    # TODO: pretrain also the std to match the one from the dataset
+    model.pretrain(dataset, n_epochs=args.n_epochs)
+    del dataset
 
 # Teleoperation mode:
 # we don't wrap the environment with a monitor or in a vecenv

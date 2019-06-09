@@ -315,7 +315,13 @@ class TeleopEnv(object):
             # because it will be called from outside by the agent
             if not (self.is_training and not self.is_manual):
                 if self.is_manual and not self.fill_buffer:
-                    donkey_env.viewer.take_action(self.action)
+                    # Restrict actions to the one of the env when recording + manual mode
+                    raw_action = self.action
+                    if self.is_recording:
+                        # convert from [-1, 1] to [MIN_THROTTLE, MAX_THROTTLE]
+                        t = (raw_action[1] - 1) / 2
+                        raw_action[1] = (1 - t) * MIN_THROTTLE + t * MAX_THROTTLE
+                    donkey_env.viewer.take_action(raw_action)
                     self.current_obs, reward, done, info = donkey_env.observe()
                     self.current_obs, _, _, _ = donkey_env.postprocessing_step(self.action, self.current_obs,
                                                                                reward, done, info)
@@ -333,10 +339,8 @@ class TeleopEnv(object):
                             self.model.replay_buffer.add(old_obs, self.action, reward, self.current_obs, float(done))
 
             if isinstance(self.env, Recorder):
-                # TODO: convert to env action space [-1, 1] when in manual
-                action = self.action
                 # Record expert data and save image
-                self.env.store_infos(action, reward, done)
+                self.env.store_infos(self.action, reward, done)
 
             self.current_image = self.env.render(mode='rgb_array')
 

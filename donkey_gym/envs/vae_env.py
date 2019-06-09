@@ -99,7 +99,7 @@ class DonkeyVAEEnv(gym.Env):
             # z latent vector from the VAE (encoded input image)
             self.observation_space = spaces.Box(low=np.finfo(np.float32).min,
                                                 high=np.finfo(np.float32).max,
-                                                shape=(1, self.z_size + self.n_commands * n_command_history),
+                                                shape=(self.z_size + self.n_commands * n_command_history,),
                                                 dtype=np.float32)
 
         # Frame-stacking with teleoperation
@@ -173,7 +173,7 @@ class DonkeyVAEEnv(gym.Env):
             self.stacked_obs[..., -observation.shape[-1]:] = observation
             return self.stacked_obs, reward, done, info
 
-        return observation, reward, done, info
+        return observation.flatten(), reward, done, info
 
     def step(self, action):
         """
@@ -217,7 +217,7 @@ class DonkeyVAEEnv(gym.Env):
             self.stacked_obs[..., -observation.shape[-1]:] = observation
             return self.stacked_obs
 
-        return observation
+        return observation.flatten()
 
     def render(self, mode='human'):
         """

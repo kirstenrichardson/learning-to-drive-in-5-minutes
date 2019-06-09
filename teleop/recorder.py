@@ -108,6 +108,10 @@ class Recorder(object):
         rewards = np.array(self.rewards)
         self.episode_starts[0] = True
         episode_starts = np.array(self.episode_starts)
+        # Avoid division by zero when loading the dataset
+        # this value is only used for stats
+        if len(self.episode_returns) == 0:
+            self.episode_returns = [1]
         episode_returns = np.array(self.episode_returns)
 
         assert len(observations) == len(actions)
@@ -128,3 +132,36 @@ class Recorder(object):
             os.remove(self.archive_path)
         # Save archive
         np.savez(self.archive_path, **numpy_dict)
+
+    @staticmethod
+    def convert_obs_to_latent_vec(numpy_dict, vae_model, n_command_history=0):
+        """
+        :param numpy_dict: (np dict)
+        :param vae_model: (VAEController)
+        :param n_command_history: (int)
+        :return: (dict)
+        """
+        # Numpy dict does not support item assignement
+        numpy_dict = dict(numpy_dict)
+        n_commands = 2
+        command_history = np.zeros((1, n_commands * n_command_history))
+        observations = []
+        for image_path, action in zip(numpy_dict['obs'], numpy_dict['actions']):
+            # Load BGR image
+            image = cv2.imread(image_path)
+            # Convert to latent vector
+            observation = vae_model.encode_from_raw_image(image)
+            # Free memory
+            del image
+            # Update command history
+            if n_command_history > 0:
+                command_history = np.roll(command_history, shift=-n_commands, axis=-1)
+                command_history[..., -n_commands:] = action
+                observation = np.concatenate((observation, command_history), axis=-1)
+            observations.append(observation)
+        numpy_dict['obs'] = np.concatenate(observations).reshape((-1, vae_model.z_size + 2 * n_command_history))
+        # Avoid division by zero when loading the dataset
+        # this value is only used for stats
+        if len(numpy_dict['episode_returns']) == 0:
+            numpy_dict['episode_returns'] = np.ones(1)
+        return numpy_dict
