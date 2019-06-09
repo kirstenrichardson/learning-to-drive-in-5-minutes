@@ -333,7 +333,10 @@ class TeleopEnv(object):
                             self.model.replay_buffer.add(old_obs, self.action, reward, self.current_obs, float(done))
 
             if isinstance(self.env, Recorder):
-                self.env.save_image()
+                # TODO: convert to env action space [-1, 1] when in manual
+                action = self.action
+                # Record expert data and save image
+                self.env.store_infos(action, reward, done)
 
             self.current_image = self.env.render(mode='rgb_array')
 
