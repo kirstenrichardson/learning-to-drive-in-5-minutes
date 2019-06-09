@@ -164,7 +164,7 @@ def create_test_env(stats_path=None, seed=0,
             env = VecNormalize(env, training=False, **hyperparams['normalize_kwargs'])
             env.load_running_average(stats_path)
 
-        n_stack = hyperparams.get('n_stack', 0)
+        n_stack = hyperparams.get('frame_stack', 0)
         if n_stack > 0:
             print("Stacking {} frames".format(n_stack))
             env = VecFrameStack(env, n_stack)

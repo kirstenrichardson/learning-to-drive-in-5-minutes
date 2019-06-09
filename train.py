@@ -45,7 +45,7 @@ if args.trained_agent != "":
     assert args.trained_agent.endswith('.pkl') and os.path.isfile(args.trained_agent), \
         "The trained_agent must be a valid path to a .pkl file"
 
-tensorboard_log = None if args.tensorboard_log == '' else args.tensorboard_log + '/' + ENV_ID
+tensorboard_log = None if args.tensorboard_log == '' else os.path.join(args.tensorboard_log, ENV_ID)
 
 print("=" * 10, ENV_ID, args.algo, "=" * 10)
 
@@ -64,7 +64,6 @@ else:
 # Load hyperparameters from yaml file
 with open('hyperparams/{}.yml'.format(args.algo), 'r') as f:
     hyperparams = yaml.load(f)[BASE_ENV]
-
 
 # Sort hyperparams that will be saved
 saved_hyperparams = OrderedDict([(key, hyperparams[key]) for key in sorted(hyperparams.keys())])
@@ -136,8 +135,8 @@ if hyperparams.get('frame_stack', False):
     print("Stacking {} frames".format(n_stack))
     del hyperparams['frame_stack']
 
-# Parse noise string for DDPG
-if args.algo == 'ddpg' and hyperparams.get('noise_type') is not None:
+# Parse noise string for DDPG and SAC
+if args.algo in ['ddpg', 'sac'] and hyperparams.get('noise_type') is not None:
     noise_type = hyperparams['noise_type'].strip()
     noise_std = hyperparams['noise_std']
     n_actions = env.action_space.shape[0]
