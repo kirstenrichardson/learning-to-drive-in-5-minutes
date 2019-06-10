@@ -318,12 +318,16 @@ class TeleopEnv(object):
                     # Restrict actions to the one of the env when recording + manual mode
                     raw_action = self.action
                     if self.is_recording:
-                        # convert from [-1, 1] to [MIN_THROTTLE, MAX_THROTTLE]
-                        t = (raw_action[1] - 1) / 2
-                        raw_action[1] = (1 - t) * MIN_THROTTLE + t * MAX_THROTTLE
+                        # Convert from [-1, 1] to [MIN_THROTTLE, MAX_THROTTLE]
+                        raw_action[1] = donkey_env.convert_throttle_to_donkey(raw_action[1])
+                        # Clip max delta
+                        if donkey_env.n_command_history > 0:
+                            raw_action[0] = donkey_env.clip_steering_diff(raw_action[0])
+                        # TODO: check that this is correct for recording
+                        self.action = raw_action
                     donkey_env.viewer.take_action(raw_action)
                     self.current_obs, reward, done, info = donkey_env.observe()
-                    self.current_obs, _, _, _ = donkey_env.postprocessing_step(self.action, self.current_obs,
+                    self.current_obs, _, _, _ = donkey_env.postprocessing_step(raw_action, self.current_obs,
                                                                                reward, done, info)
 
                 else:
@@ -423,7 +427,10 @@ class TeleopEnv(object):
                 and self.current_obs is not None
                 and SHOW_IMAGES_TELEOP):
             vae_dim = self.donkey_env.vae.z_size
-            encoded = self.current_obs[:, :vae_dim]
+            if len(self.current_obs.shape) == 1:
+                encoded = self.current_obs[:vae_dim].reshape(1, -1)
+            else:
+                encoded = self.current_obs[:, :vae_dim]
             reconstructed_image = self.donkey_env.vae.decode(encoded)[0]
             # Convert BGR to RGB
             reconstructed_image = reconstructed_image[:, :, ::-1]

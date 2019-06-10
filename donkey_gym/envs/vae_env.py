@@ -175,6 +175,26 @@ class DonkeyVAEEnv(gym.Env):
 
         return observation.flatten(), reward, done, info
 
+    def clip_steering_diff(self, steering):
+        """
+        :param steering: (float)
+        :return: (foat)
+        """
+        prev_steering = self.command_history[0, -2]
+        max_diff = (MAX_STEERING_DIFF - 1e-5) * (MAX_STEERING - MIN_STEERING)
+        diff = np.clip(steering - prev_steering, -max_diff, max_diff)
+        return prev_steering + diff
+
+    def convert_throttle_to_donkey(self, throttle):
+        """
+        :param throttle: (float)
+        :return: (float)
+        """
+        # Convert from [-1, 1] to [0, 1]
+        t = (throttle + 1) / 2
+        # Convert from [0, 1] to [min, max]
+        return (1 - t) * self.min_throttle + self.max_throttle * t
+
     def step(self, action):
         """
         :param action: (np.ndarray)
@@ -185,17 +205,11 @@ class DonkeyVAEEnv(gym.Env):
         if self.const_throttle is not None:
             action = np.concatenate([action, [self.const_throttle]])
         else:
-            # Convert from [-1, 1] to [0, 1]
-            t = (action[1] + 1) / 2
-            # Convert from [0, 1] to [min, max]
-            action[1] = (1 - t) * self.min_throttle + self.max_throttle * t
+            action[1] = self.convert_throttle_to_donkey(action[1])
 
         # Clip steering angle rate to enforce continuity
         if self.n_command_history > 0:
-            prev_steering = self.command_history[0, -2]
-            max_diff = (MAX_STEERING_DIFF - 1e-5) * (MAX_STEERING - MIN_STEERING)
-            diff = np.clip(action[0] - prev_steering, -max_diff, max_diff)
-            action[0] = prev_steering + diff
+            action[0] = self.clip_steering_diff(action[0])
 
         # Repeat action if using frame_skip
         for _ in range(self.frame_skip):
