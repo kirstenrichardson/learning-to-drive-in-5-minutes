@@ -66,8 +66,8 @@ vae_controller.vae = vae
 
 for epoch in range(args.n_epochs):
     pbar = tqdm(total=len(minibatchlist))
-    for obs in data_loader:
-        feed = {vae.input_tensor: obs}
+    for obs, target_obs in data_loader:
+        feed = {vae.input_tensor: obs, vae.target_tensor: target_obs}
         (train_loss, r_loss, kl_loss, train_step, _) = vae.sess.run([
             vae.loss,
             vae.r_loss,

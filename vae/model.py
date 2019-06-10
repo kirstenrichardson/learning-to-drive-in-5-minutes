@@ -61,6 +61,7 @@ class ConvVAE(object):
         self.graph = tf.Graph()
         with self.graph.as_default():
             self.input_tensor = tf.placeholder(tf.float32, shape=[None, 80, 160, 3])
+            self.target_tensor = tf.placeholder(tf.float32, shape=[None, 80, 160, 3])
 
             # Encoder
             h = tf.layers.conv2d(self.input_tensor, 32, 4, strides=2, activation=tf.nn.relu, name="enc_conv1")
@@ -96,7 +97,7 @@ class ConvVAE(object):
                 self.global_step = tf.Variable(0, name='global_step', trainable=False)
                 # reconstruction loss
                 self.r_loss = tf.reduce_sum(
-                    tf.square(self.input_tensor - self.output_tensor),
+                    tf.square(self.target_tensor - self.output_tensor),
                     reduction_indices=[1, 2, 3]
                 )
                 self.r_loss = tf.reduce_mean(self.r_loss)
