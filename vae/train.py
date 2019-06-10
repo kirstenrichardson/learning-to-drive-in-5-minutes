@@ -98,7 +98,7 @@ for epoch in range(args.n_epochs):
         cv2.waitKey(1)
 
 save_path = "logs/vae-{}.pkl".format(args.z_size)
-os.makedirs(save_path, exist_ok=True)
+os.makedirs(os.path.dirname(save_path), exist_ok=True)
 print("Saving to {}".format(save_path))
 vae_controller.set_target_params()
 vae_controller.save(save_path)
