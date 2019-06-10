@@ -156,7 +156,9 @@ class Recorder(object):
             # Update command history
             if n_command_history > 0:
                 command_history = np.roll(command_history, shift=-n_commands, axis=-1)
-                command_history[..., -n_commands:] = action
+                # TODO: fix command history (otherwise too easy to predict the action)
+                # currently deactivated, so the network focuses on the VAE features
+                command_history[..., -n_commands:] = 0 * action
                 observation = np.concatenate((observation, command_history), axis=-1)
             observations.append(observation)
         numpy_dict['obs'] = np.concatenate(observations).reshape((-1, vae_model.z_size + 2 * n_command_history))
