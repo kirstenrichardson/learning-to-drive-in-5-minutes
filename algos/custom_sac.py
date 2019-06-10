@@ -93,7 +93,7 @@ class SACWithVAE(SAC):
                 # from a uniform distribution for better exploration.
                 # Afterwards, use the learned policy
                 # if random_exploration is set to 0 (normal setting)
-                if (self.num_timesteps < self.learning_starts
+                if (step < self.learning_starts
                     or np.random.rand() < self.random_exploration):
                     # No need to rescale when sampling random action
                     rescaled_action = action = self.env.action_space.sample()

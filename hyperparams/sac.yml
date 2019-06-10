@@ -11,6 +11,6 @@ DonkeyVae-v0:
   gamma: 0.99
   ent_coef: 'auto_0.1'
   # ent_coef: 0.05
-  gradient_steps: 500
+  gradient_steps: 600
   learning_starts: 300
   # frame_stack: 3
