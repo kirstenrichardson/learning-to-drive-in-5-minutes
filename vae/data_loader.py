@@ -111,7 +111,8 @@ def get_image_augmenter():
     :return: (iaa.Sequential) Image Augmenter
     """
     return iaa.Sequential([
-        Sometimes(0.5, iaa.Fliplr(1)),
+        # TODO: if flipped, reconstruct the flipped one
+        # Sometimes(0.5, iaa.Fliplr(1)),
         Sometimes(0.5, iaa.GaussianBlur(sigma=(0, 3.0))),
         Sometimes(0.5, iaa.Sharpen(alpha=(0.0, 1.0), lightness=(0.75, 2.0))),
         Sometimes(0.2, iaa.CoarseDropout((0.0, 0.05), size_percent=(0.02, 0.25))),
