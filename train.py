@@ -124,6 +124,9 @@ if 'normalize' in hyperparams.keys():
         normalize = True
     del hyperparams['normalize']
 
+if 'policy_kwargs' in hyperparams.keys():
+    hyperparams['policy_kwargs'] = eval(hyperparams['policy_kwargs'])
+
 if not args.teleop:
     env = DummyVecEnv([make_env(args.seed, vae=vae, teleop=args.teleop)])
 else:
@@ -197,7 +200,19 @@ if args.pretrain_path is not None:
     dataset = ExpertDataset(traj_data=expert_dataset,
                             traj_limitation=args.traj_limitation, batch_size=args.batch_size)
     # TODO: pretrain also the std to match the one from the dataset
-    model.pretrain(dataset, n_epochs=args.n_epochs)
+    # model.pretrain(dataset, n_epochs=args.n_epochs)
+    # Fill the replay buffer
+    if args.algo == "sac":
+        print("Filling replay buffer")
+        for i in range(len(expert_dataset['obs']) - 1):
+            done = expert_dataset['episode_starts'][i + 1]
+            obs, next_obs = expert_dataset['obs'][i], expert_dataset['obs'][i + 1]
+            action, reward = expert_dataset['actions'][i], expert_dataset['rewards'][i]
+            model.replay_buffer.add(obs, action, reward, next_obs, float(done))
+        # Initialize the value fn
+        model.n_updates = 0
+        for _ in range(10):
+            model.optimize(max(model.batch_size, model.learning_starts), None, model.learning_rate(1))
     del dataset
 
 # Teleoperation mode:
@@ -231,6 +246,7 @@ else:
     # HACK to bypass Monitor wrapper
     env.envs[0].env.exit_scene()
 
+print("Saving model to {}".format(save_path))
 # Save trained model
 model.save(os.path.join(save_path, ENV_ID))
 # Save hyperparams

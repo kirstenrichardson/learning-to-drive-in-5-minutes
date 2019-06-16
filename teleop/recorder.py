@@ -144,9 +144,14 @@ class Recorder(object):
         # Numpy dict does not support item assignement
         numpy_dict = dict(numpy_dict)
         n_commands = 2
-        command_history = np.zeros((1, n_commands * n_command_history))
         observations = []
-        for image_path, action in zip(numpy_dict['obs'], numpy_dict['actions']):
+
+        for image_path, action, episode_start in zip(numpy_dict['obs'], numpy_dict['actions'],
+                                                      numpy_dict['episode_starts']):
+            if episode_start:
+                command_history = np.zeros((1, n_commands * n_command_history))
+                prev_action = None
+
             # Load BGR image
             image = cv2.imread(image_path)
             # Convert to latent vector
@@ -154,13 +159,14 @@ class Recorder(object):
             # Free memory
             del image
             # Update command history
-            if n_command_history > 0:
+            if n_command_history > 0 and prev_action is not None:
                 command_history = np.roll(command_history, shift=-n_commands, axis=-1)
-                # TODO: fix command history (otherwise too easy to predict the action)
-                # currently deactivated, so the network focuses on the VAE features
-                command_history[..., -n_commands:] = 0 * action
+                command_history[..., -n_commands:] = prev_action
+
+            if n_command_history > 0:
                 observation = np.concatenate((observation, command_history), axis=-1)
             observations.append(observation)
+            prev_action = action
         numpy_dict['obs'] = np.concatenate(observations).reshape((-1, vae_model.z_size + 2 * n_command_history))
         # Avoid division by zero when loading the dataset
         # this value is only used for stats
