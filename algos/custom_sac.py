@@ -162,7 +162,7 @@ class SACWithVAE(SAC):
                 else:
                     mean_reward = round(float(np.mean(episode_rewards[-101:-1])), 1)
 
-                num_episodes = len(episode_rewards)
+                num_episodes = len(episode_rewards) - 1
                 if self.verbose >= 1 and done and log_interval is not None and len(episode_rewards) % log_interval == 0:
                     fps = int(step / (time.time() - start_time))
                     logger.logkv("episodes", num_episodes)
