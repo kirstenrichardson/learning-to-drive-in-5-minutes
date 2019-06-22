@@ -199,8 +199,7 @@ if args.pretrain_path is not None:
     # Create the dataloader and petrain (Behavior-Cloning)
     dataset = ExpertDataset(traj_data=expert_dataset,
                             traj_limitation=args.traj_limitation, batch_size=args.batch_size)
-    # TODO: pretrain also the std to match the one from the dataset
-    # model.pretrain(dataset, n_epochs=args.n_epochs)
+
     # Fill the replay buffer
     if args.algo == "sac":
         print("Filling replay buffer")
@@ -213,6 +212,9 @@ if args.pretrain_path is not None:
         model.n_updates = 0
         for _ in range(10):
             model.optimize(max(model.batch_size, model.learning_starts), None, model.learning_rate(1))
+    else:
+        # TODO: pretrain also the std to match the one from the dataset
+        model.pretrain(dataset, n_epochs=args.n_epochs)
     del dataset
 
 # Teleoperation mode:

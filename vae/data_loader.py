@@ -113,8 +113,9 @@ def get_image_augmenter():
     return iaa.Sequential([
         # TODO: if flipped, reconstruct the flipped one
         # Sometimes(0.5, iaa.Fliplr(1)),
+        # TODO: add shadows, see: https://markku.ai/post/data-augmentation/
         Sometimes(0.5, iaa.GaussianBlur(sigma=(0, 2.0))),
-        Sometimes(0.5, iaa.MotionBlur(k=(3, 11), angle=(-5, 5))),
+        Sometimes(0.5, iaa.MotionBlur(k=(3, 11), angle=(0, 360))),
         Sometimes(0.5, iaa.Sharpen(alpha=(0.0, 1.0), lightness=(0.75, 2.0))),
         Sometimes(0.4, iaa.Add((-15, 15), per_channel=0.5)),
         Sometimes(0.5, iaa.Multiply((0.6, 1.4), per_channel=0.5)),
