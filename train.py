@@ -15,7 +15,7 @@ from stable_baselines.ppo2.ppo2 import constfn
 from stable_baselines.gail import ExpertDataset
 
 from config import MIN_THROTTLE, MAX_THROTTLE, FRAME_SKIP,\
-    MAX_CTE_ERROR, SIM_PARAMS, N_COMMAND_HISTORY, Z_SIZE, BASE_ENV, ENV_ID, MAX_STEERING_DIFF
+    MAX_CTE_ERROR, SIM_PARAMS, N_COMMAND_HISTORY, Z_SIZE, MAX_STEERING_DIFF
 from utils.utils import make_env, ALGOS, linear_schedule, get_latest_run_id, load_vae, create_callback
 from teleop.teleop_client import TeleopEnv
 from teleop.recorder import Recorder
@@ -35,6 +35,7 @@ parser.add_argument('-vae', '--vae-path', help='Path to saved VAE', type=str, de
 parser.add_argument('--save-vae', action='store_true', default=False,
                     help='Save VAE')
 parser.add_argument('--seed', help='Random generator seed', type=int, default=0)
+parser.add_argument('--level', help='Level index', type=int, default=0)
 parser.add_argument('--random-features', action='store_true', default=False,
                     help='Use random features')
 parser.add_argument('--teleop', action='store_true', default=False,
@@ -50,6 +51,7 @@ parser.add_argument('--traj-limitation', type=int, default=-1,
 args = parser.parse_args()
 
 set_global_seeds(args.seed)
+ENV_ID = "DonkeyVae-v0-level-{}".format(args.level)
 
 if args.trained_agent != "":
     assert args.trained_agent.endswith('.pkl') and os.path.isfile(args.trained_agent), \
@@ -73,7 +75,7 @@ else:
 
 # Load hyperparameters from yaml file
 with open('hyperparams/{}.yml'.format(args.algo), 'r') as f:
-    hyperparams = yaml.load(f)[BASE_ENV]
+    hyperparams = yaml.load(f)['DonkeyVae-v0']
 
 # Sort hyperparams that will be saved
 saved_hyperparams = OrderedDict([(key, hyperparams[key]) for key in sorted(hyperparams.keys())])
@@ -128,9 +130,9 @@ if 'policy_kwargs' in hyperparams.keys():
     hyperparams['policy_kwargs'] = eval(hyperparams['policy_kwargs'])
 
 if not args.teleop:
-    env = DummyVecEnv([make_env(args.seed, vae=vae, teleop=args.teleop)])
+    env = DummyVecEnv([make_env(args.level, args.seed, vae=vae, teleop=args.teleop)])
 else:
-    env = make_env(args.seed, vae=vae, teleop=args.teleop,
+    env = make_env(args.level, args.seed, vae=vae, teleop=args.teleop,
                    n_stack=hyperparams.get('frame_stack', 1))()
 
 if normalize:

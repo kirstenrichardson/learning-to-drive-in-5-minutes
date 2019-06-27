@@ -12,7 +12,7 @@ from stable_baselines.bench import Monitor
 from stable_baselines.common.vec_env import VecFrameStack, VecNormalize, DummyVecEnv
 
 from config import MIN_STEERING, MAX_STEERING, MIN_THROTTLE, MAX_THROTTLE, \
-    LEVEL, N_COMMAND_HISTORY, TEST_FRAME_SKIP, ENV_ID, FRAME_SKIP, \
+    N_COMMAND_HISTORY, TEST_FRAME_SKIP, FRAME_SKIP, \
     SHOW_IMAGES_TELEOP, REWARD_CRASH, CRASH_SPEED_WEIGHT
 from donkey_gym.envs.vae_env import DonkeyVAEEnv
 from utils.utils import ALGOS, get_latest_run_id, load_vae
@@ -453,12 +453,14 @@ if __name__ == '__main__':
     parser.add_argument('--exp-id', help='Experiment ID (-1: no exp folder, 0: latest)', default=0,
                         type=int)
     parser.add_argument('-vae', '--vae-path', help='Path to saved VAE', type=str, default='')
+    parser.add_argument('--level', help='Level index', type=int, default=0)
     args = parser.parse_args()
 
     algo = args.algo
     folder = args.folder
     model = None
     vae = None
+    ENV_ID = "DonkeyVae-v0-level-{}".format(args.level)
 
     if algo != '':
         if args.exp_id == 0:
@@ -484,7 +486,7 @@ if __name__ == '__main__':
     if vae is None:
         N_COMMAND_HISTORY = 0
 
-    env = DonkeyVAEEnv(level=LEVEL, frame_skip=TEST_FRAME_SKIP, vae=vae, const_throttle=None, min_throttle=MIN_THROTTLE,
+    env = DonkeyVAEEnv(level=args.level, frame_skip=TEST_FRAME_SKIP, vae=vae, const_throttle=None, min_throttle=MIN_THROTTLE,
                        max_throttle=MAX_THROTTLE, max_cte_error=10, n_command_history=N_COMMAND_HISTORY,
                        seed=1, road_style=0)
     env = Recorder(env, folder=args.record_folder, verbose=1)

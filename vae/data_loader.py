@@ -119,7 +119,7 @@ def get_image_augmenter():
         Sometimes(0.5, iaa.Sharpen(alpha=(0.0, 1.0), lightness=(0.75, 2.0))),
         Sometimes(0.4, iaa.Add((-15, 15), per_channel=0.5)),
         Sometimes(0.5, iaa.Multiply((0.6, 1.4), per_channel=0.5)),
-        Sometimes(0.2, iaa.CoarseDropout((0.0, 0.05), size_percent=(0.02, 0.25))),
+        Sometimes(0.2, iaa.CoarseDropout((0.0, 0.05), size_percent=(0.02, 0.10), per_channel=0.5)),
         Sometimes(0.5, iaa.ContrastNormalization((0.5, 1.8), per_channel=0.5)),
         Sometimes(0.1, iaa.AdditiveGaussianNoise(scale=10, per_channel=True))
     ], random_order=True)

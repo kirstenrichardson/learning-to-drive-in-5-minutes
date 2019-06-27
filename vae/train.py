@@ -68,6 +68,10 @@ data_loader = DataLoader(minibatchlist, images, n_workers=2)
 
 vae_controller = VAEController(z_size=args.z_size)
 vae_controller.vae = vae
+best_loss = np.inf
+save_path = "logs/vae-{}.pkl".format(args.z_size)
+best_model_path = "logs/vae-{}_best.pkl".format(args.z_size)
+os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
 for epoch in range(args.n_epochs):
     pbar = tqdm(total=len(minibatchlist))
@@ -87,6 +91,13 @@ for epoch in range(args.n_epochs):
 
     # Update params
     vae_controller.set_target_params()
+
+    # TODO: use validation set
+    if train_loss < best_loss:
+        best_loss = train_loss
+        print("Saving best model to {}".format(best_model_path))
+        vae_controller.save(best_model_path)
+
     # Load test image
     if args.verbose >= 1:
         image_idx = np.random.randint(n_samples)
@@ -101,8 +112,6 @@ for epoch in range(args.n_epochs):
         cv2.imshow("Reconstruction", reconstructed_image)
         cv2.waitKey(1)
 
-save_path = "logs/vae-{}.pkl".format(args.z_size)
-os.makedirs(os.path.dirname(save_path), exist_ok=True)
 print("Saving to {}".format(save_path))
 vae_controller.set_target_params()
 vae_controller.save(save_path)
