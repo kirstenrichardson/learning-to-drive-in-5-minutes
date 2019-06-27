@@ -126,7 +126,7 @@ def get_image_augmenter():
 
 
 class DataLoader(object):
-    def __init__(self, minibatchlist, images_path, n_workers=1, folder='logs/recorded_data/',
+    def __init__(self, minibatchlist, images_path, n_workers=1,
                  infinite_loop=True, max_queue_len=4, is_training=False, augment=True):
         """
         A Custom dataloader to preprocessing images and feed them to the network.
@@ -134,7 +134,6 @@ class DataLoader(object):
         :param minibatchlist: ([np.array]) list of observations indices (grouped per minibatch)
         :param images_path: (np.array) Array of path to images
         :param n_workers: (int) number of preprocessing worker (load and preprocess each image)
-        :param folder: (str)
         :param infinite_loop: (bool) whether to have an iterator that can be resetted, set to False, it
         :param max_queue_len: (int) Max number of minibatches that can be preprocessed at the same time
         :param is_training: (bool)
@@ -147,7 +146,6 @@ class DataLoader(object):
         self.minibatchlist = minibatchlist
         self.images_path = images_path
         self.shuffle = is_training
-        self.folder = folder
         self.queue = Queue(max_queue_len)
         self.process = None
         self.augmenter = None
@@ -195,11 +193,11 @@ class DataLoader(object):
                     images = self.images_path[self.minibatchlist[minibatch_idx]]
 
                     if self.n_workers <= 1:
-                        batch = [self._make_batch_element(self.folder, image_path, self.augmenter)
+                        batch = [self._make_batch_element(image_path, self.augmenter)
                                  for image_path in images]
 
                     else:
-                        batch = parallel(delayed(self._make_batch_element)(self.folder, image_path, self.augmenter)
+                        batch = parallel(delayed(self._make_batch_element)(image_path, self.augmenter)
                                          for image_path in images)
 
 
@@ -217,15 +215,12 @@ class DataLoader(object):
                 self.queue.put(None)
 
     @classmethod
-    def _make_batch_element(cls, folder, image_path, augmenter=None):
+    def _make_batch_element(cls, image_path, augmenter=None):
         """
-        :param folder: (str)
         :param image_path: (str) path to an image
         :param augment: (iaa.Sequential) Image augmenter
         :return: (np.ndarray, np.ndarray)
         """
-        image_path = folder + image_path
-
         im = cv2.imread(image_path)
         if im is None:
             raise ValueError("tried to load {}.jpg, but it was not found".format(image_path))

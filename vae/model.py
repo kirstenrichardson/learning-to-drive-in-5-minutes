@@ -36,7 +36,7 @@ class ConvVAE(object):
     :param reuse: (bool)
     """
 
-    def __init__(self, z_size=512, batch_size=100, learning_rate=0.0001,
+    def __init__(self, z_size=32, batch_size=100, learning_rate=0.0001,
                  kl_tolerance=0.5, is_training=True, beta=1.0, reuse=False):
         self.z_size = z_size
         self.batch_size = batch_size
