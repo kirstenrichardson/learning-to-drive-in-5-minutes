@@ -3,6 +3,7 @@ Train a VAE model using saved images in a folder
 """
 import argparse
 import os
+import time
 
 import cv2
 import numpy as np
@@ -36,6 +37,7 @@ for folder in args.folders:
         folder += '/'
     folders.append(folder)
     images_ = [folder + im for im in os.listdir(folder) if im.endswith('.jpg')]
+    print("{}: {} images".format(folder, len(images_)))
     images.append(images_)
 
 vae = ConvVAE(z_size=args.z_size,
@@ -69,8 +71,9 @@ data_loader = DataLoader(minibatchlist, images, n_workers=2)
 vae_controller = VAEController(z_size=args.z_size)
 vae_controller.vae = vae
 best_loss = np.inf
-save_path = "logs/vae-{}.pkl".format(args.z_size)
-best_model_path = "logs/vae-{}_best.pkl".format(args.z_size)
+vae_id = int(time.time())
+save_path = "logs/vae-{}_{}.pkl".format(args.z_size, vae_id)
+best_model_path = "logs/vae-{}_{}_best.pkl".format(args.z_size, vae_id)
 os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
 for epoch in range(args.n_epochs):
