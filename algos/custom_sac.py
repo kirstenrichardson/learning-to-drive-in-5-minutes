@@ -23,7 +23,7 @@ class SACWithVAE(SAC):
     def optimize(self, step, writer, current_lr):
         """
         Do several optimization steps to update the different networks.
-        
+
         :param step: (int) current timestep
         :param writer: (TensorboardWriter object)
         :param current_lr: (float) Current learning rate
@@ -45,12 +45,12 @@ class SACWithVAE(SAC):
             print("SAC training duration: {:.2f}s".format(time.time() - train_start))
         return mb_infos_vals
 
-    def learn(self, total_timesteps, callback=None, seed=None,
+    def learn(self, total_timesteps, callback=None,
               log_interval=1, tb_log_name="SAC", print_freq=100):
 
         with TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name) as writer:
 
-            self._setup_learn(seed)
+            self._setup_learn()
 
             # Transform to callable if needed
             self.learning_rate = get_schedule_fn(self.learning_rate)

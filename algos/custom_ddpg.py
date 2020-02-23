@@ -19,7 +19,7 @@ class DDPGWithVAE(DDPG):
     - optimization is done after each episode
     - more verbosity.
     """
-    def learn(self, total_timesteps, callback=None, seed=None,
+    def learn(self, total_timesteps, callback=None,
               log_interval=1, tb_log_name="DDPG", print_freq=100):
         with TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name) as writer:
 

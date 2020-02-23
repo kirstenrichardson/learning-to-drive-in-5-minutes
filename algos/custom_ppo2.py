@@ -17,13 +17,13 @@ class PPO2WithVAE(PPO2):
     Notable changes:
         - optimization is done after each episode and not after n steps
     """
-    def learn(self, total_timesteps, callback=None, seed=None, log_interval=1, tb_log_name="PPO2"):
+    def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="PPO2"):
         # Transform to callable if needed
         self.learning_rate = get_schedule_fn(self.learning_rate)
         self.cliprange = get_schedule_fn(self.cliprange)
 
         with TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name) as writer:
-            self._setup_learn(seed)
+            self._setup_learn()
 
             runner = Runner(env=self.env, model=self, n_steps=self.n_steps, gamma=self.gamma, lam=self.lam)
             self.episode_reward = np.zeros((self.n_envs,))

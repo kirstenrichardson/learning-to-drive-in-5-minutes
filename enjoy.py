@@ -4,6 +4,11 @@
 import argparse
 import os
 import time
+import warnings
+
+# Remove warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module='tensorflow')
+warnings.filterwarnings("ignore", category=UserWarning, module='gym')
 
 import gym
 import numpy as np

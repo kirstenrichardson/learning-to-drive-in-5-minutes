@@ -3,8 +3,13 @@
 import argparse
 import os
 import time
+import warnings
 from collections import OrderedDict
 from pprint import pprint
+
+# Remove warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module='tensorflow')
+warnings.filterwarnings("ignore", category=UserWarning, module='gym')
 
 import numpy as np
 import yaml
@@ -66,6 +71,7 @@ with open('hyperparams/{}.yml'.format(args.algo), 'r') as f:
     hyperparams = yaml.load(f, Loader=yaml.UnsafeLoader)[BASE_ENV]
 
 
+hyperparams['seed'] = args.seed
 # Sort hyperparams that will be saved
 saved_hyperparams = OrderedDict([(key, hyperparams[key]) for key in sorted(hyperparams.keys())])
 # save vae path
