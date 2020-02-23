@@ -63,7 +63,7 @@ else:
 
 # Load hyperparameters from yaml file
 with open('hyperparams/{}.yml'.format(args.algo), 'r') as f:
-    hyperparams = yaml.load(f)[BASE_ENV]
+    hyperparams = yaml.load(f, Loader=yaml.UnsafeLoader)[BASE_ENV]
 
 
 # Sort hyperparams that will be saved
@@ -205,7 +205,7 @@ else:
     env.envs[0].env.exit_scene()
 
 # Save trained model
-model.save(os.path.join(save_path, ENV_ID))
+model.save(os.path.join(save_path, ENV_ID), cloudpickle=True)
 # Save hyperparams
 with open(os.path.join(params_path, 'config.yml'), 'w') as f:
     yaml.dump(saved_hyperparams, f)
