@@ -125,7 +125,7 @@ class Runner(AbstractEnvRunner):
         self.lam = lam
         self.gamma = gamma
 
-    def run(self):
+    def _run(self):
         """
         Run a learning step of the model
 
