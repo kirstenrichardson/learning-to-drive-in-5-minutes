@@ -7,7 +7,10 @@ from stable_baselines import logger, PPO2
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common import explained_variance, TensorboardWriter
 from stable_baselines.common.runners import AbstractEnvRunner
-from stable_baselines.ppo2.ppo2 import get_schedule_fn, safe_mean, swap_and_flatten
+from stable_baselines.common.schedules import get_schedule_fn
+from stable_baselines.common.math_util import safe_mean
+from stable_baselines.ppo2.ppo2 import swap_and_flatten
+
 
 
 class PPO2WithVAE(PPO2):

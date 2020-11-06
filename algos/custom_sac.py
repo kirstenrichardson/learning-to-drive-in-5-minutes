@@ -6,7 +6,8 @@ from stable_baselines import SAC
 from stable_baselines import logger
 from stable_baselines.common.vec_env import VecEnv
 from stable_baselines.common.tf_util import total_episode_reward_logger
-from stable_baselines.ppo2.ppo2 import safe_mean, get_schedule_fn
+from stable_baselines.common.schedules import get_schedule_fn
+from stable_baselines.common.math_util import safe_mean
 from stable_baselines.common import TensorboardWriter
 
 
